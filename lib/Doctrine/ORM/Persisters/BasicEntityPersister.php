@@ -848,6 +848,20 @@ class BasicEntityPersister
         return $hydrator->hydrateAll($stmt, $this->_rsm, array('deferEagerLoads' => true));
     }
 
+	/**
+	 * Counts entities by a list of field criteria.
+	 *
+	 * @param array $criteria
+	 * @return int
+	 */
+	public function countAll(array $criteria = array())
+	{
+		$sql = $this->_getCountSQL($criteria);
+		list($params, $types) = $this->expandParameters($criteria);
+		$stmt = $this->_conn->executeQuery($sql, $params, $types);
+		return intval($stmt->fetchColumn());
+	}
+
     /**
      * Get (sliced or full) elements of the given collection.
      *
@@ -1046,6 +1060,33 @@ class BasicEntityPersister
              . $orderBySql, $limit, $offset)
              . $lockSql;
     }
+
+	/**
+	 * Gets the SELECT SQL to count entities by a set of field criteria.
+	 *
+	 * @param array|\Doctrine\Common\Collections\Criteria $criteria
+	 * @return string
+	 */
+	protected function _getCountSQL($criteria)
+	{
+		$conditionSql = ($criteria instanceof Criteria)
+			? $this->_getSelectConditionCriteriaSQL($criteria)
+			: $this->_getSelectConditionSQL($criteria);
+
+		$alias = $this->_getSQLTableAlias($this->_class->name);
+
+		if ($filterSql = $this->generateFilterConditionSQL($this->_class, $alias)) {
+			if ($conditionSql) {
+				$conditionSql .= ' AND ';
+			}
+
+			$conditionSql .= $filterSql;
+		}
+
+		return 'SELECT count(1)'
+			. ' FROM ' . $this->quoteStrategy->getTableName($this->_class, $this->_platform) . ' ' . $alias
+			. $this->_selectJoinSql . ($conditionSql ? ' WHERE ' . $conditionSql : '');
+	}
 
     /**
      * Gets the ORDER BY SQL snippet for ordered collections.

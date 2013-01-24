@@ -157,7 +157,24 @@ class EntityRepository implements ObjectRepository, Selectable
         return $persister->loadAll($criteria, $orderBy, $limit, $offset);
     }
 
-    /**
+	/**
+	 * Counts objects that satisfy a set of criteria.
+	 *
+	 * An implementation may throw an UnexpectedValueException if certain values
+	 * of the limiting details are not supported.
+	 *
+	 * @throws \UnexpectedValueException
+	 * @param array $criteria
+	 * @return int
+	 */
+	function countBy(array $criteria) {
+		$persister = $this->_em->getUnitOfWork()->getEntityPersister($this->_entityName);
+
+		return $persister->countAll($criteria);
+	}
+
+
+	/**
      * Finds a single entity by a set of criteria.
      *
      * @param array $criteria
